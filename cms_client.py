@@ -30,7 +30,7 @@ def get_last_position(conn):
     cursor.execute("""
         SELECT data->>'Prscrbr_NPI', data->>'Brnd_Name'
         FROM raw_part_d
-        ORDER BY data->>'Prscrbr_NPI' DESC, data->>'Brnd_Name' DESC
+        ORDER BY (data->>'Prscrbr_NPI')::bigint DESC, data->>'Brnd_Name' DESC
         LIMIT 1;
         """)
     rows = cursor.fetchone()
@@ -63,6 +63,7 @@ def fetch_all_pages(conn, dataset_id, limit=1000):
     url = f"https://data.cms.gov/data-api/v1/dataset/{dataset_id}/data"
     last_npi, last_brnd = get_last_position(conn)
     order = "Prscrbr_NPI,Brnd_Name"
+    total_rows = 0    
 
     while True:
         if last_npi is None:
@@ -74,7 +75,7 @@ def fetch_all_pages(conn, dataset_id, limit=1000):
             params = {
                 "$limit": limit,
                 "$order": order,
-                "$where": f"Prscrbr_NPI > '{last_npi}' OR (Prscrbr_NPI = '{last_npi}' AND Brnd_Name > '{last_brnd}')"
+                "$where": f"Prscrbr_NPI::number > '{last_npi}' OR (Prscrbr_NPI::number = '{last_npi}' AND Brnd_Name > '{last_brnd}')"
             }   
 
         response = fetch_with_retry(url, params)    
@@ -84,12 +85,12 @@ def fetch_all_pages(conn, dataset_id, limit=1000):
             print("No more data received, breaking")
             break
         
-        print(f"Fetched {len(data)} rows")
         insert_rows(conn,data)
-        
+        total_rows += len(data)
         last_npi = data[-1]["Prscrbr_NPI"]
         last_brnd = data[-1]["Brnd_Name"]                
 
+        print(f"Fetched {len(data)} rows, total={total_rows}, last_npi={last_npi}, last_brnd={last_brnd}")        
         if len(data) < limit:
             print(f"Reached end of dataset (received {len(data)} rows, limit={limit})")
             break
