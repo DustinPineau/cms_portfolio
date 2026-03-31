@@ -25,12 +25,19 @@ def fetch_with_retry(url, params, max_retries=5, wait=10):
             time.sleep(wait)
     raise Exception(f"Failed after {max_retries} attempts")
 
-def get_row_count(conn):
+def get_last_position(conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM raw_part_d") 
+    cursor.execute("""
+        SELECT data->>'Prscrbr_NPI', data->>'Brnd_Name'
+        FROM raw_part_d
+        ORDER BY data->>'Prscrbr_NPI' DESC, data->>'Brnd_Name' DESC
+        LIMIT 1;
+        """)
     rows = cursor.fetchone()
     cursor.close()
-    return rows[0]
+    if rows is None:
+        return None, None
+    return rows[0], rows[1]
 
 def insert_rows(conn, rows):
     if not rows:
@@ -54,36 +61,38 @@ def insert_rows(conn, rows):
 
 def fetch_all_pages(conn, dataset_id, limit=1000):
     url = f"https://data.cms.gov/data-api/v1/dataset/{dataset_id}/data"
-    offset = get_row_count(conn)
-
-    print(f"Starting from offset: {offset}")
-    total_fetched = 0
+    last_npi, last_brnd = get_last_position(conn)
+    order = "Prscrbr_NPI,Brnd_Name"
 
     while True:
-        params = {
-            "$limit": limit,
-            "$offset": offset,
-            "$order": ":id"
-        }
+        if last_npi is None:
+            params = {
+                "$limit": limit,
+                "$order": order,
+            }
+        else:
+            params = {
+                "$limit": limit,
+                "$order": order,
+                "$where": f"Prscrbr_NPI > '{last_npi}' OR (Prscrbr_NPI = '{last_npi}' AND Brnd_Name > '{last_brnd}')"
+            }   
 
-        response = fetch_with_retry(url, params)
+        response = fetch_with_retry(url, params)    
         data = response.json()
-
+        
         if not data:
             print("No more data received, breaking")
             break
-
-        print(f"Fetched {len(data)} rows, offset={offset}")
-        insert_rows(conn, data)
-
-        total_fetched += len(data)
-        print(f"Total rows ingested so far: {total_fetched + offset}")
+        
+        print(f"Fetched {len(data)} rows")
+        insert_rows(conn,data)
+        
+        last_npi = data[-1]["Prscrbr_NPI"]
+        last_brnd = data[-1]["Brnd_Name"]                
 
         if len(data) < limit:
-            print(f"Reached end of dataset (received {len(data)}| rows, limit={limit})")
+            print(f"Reached end of dataset (received {len(data)} rows, limit={limit})")
             break
-
-        offset = offset + limit
 
 def main():
     conn = get_connection()
