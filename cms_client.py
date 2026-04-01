@@ -66,7 +66,7 @@ def insert_rows(conn, rows):
     finally:
         cursor.close()
 
-def fetch_all_pages(conn, dataset_id, total_count,  limit=1000):
+def fetch_all_pages(conn, dataset_id, total_count,  limit=5000):
     url = f"https://data.cms.gov/data-api/v1/dataset/{dataset_id}/data"
     last_npi, last_brnd = get_last_position(conn)
     order = "Prscrbr_NPI,Brnd_Name"
