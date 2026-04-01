@@ -28,7 +28,7 @@ def fetch_with_retry(url, params=None, max_retries=5, wait=10):
 def get_total_count(dataset_id):
     url=f"https://data.cms.gov/data-api/v1/dataset/{dataset_id}/data/stats"
     response = fetch_with_retry(url)
-    total = response.json()["total"]
+    total = response.json()["found_rows"]
     print(f"Dataset total row count: {total}")
     return total
 
