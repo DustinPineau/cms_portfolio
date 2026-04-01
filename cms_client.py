@@ -82,7 +82,7 @@ def fetch_all_pages(conn, dataset_id, total_count,  limit=1000):
             params = {
                 "$limit": limit,
                 "$order": order,
-                "$where": f"Prscrbr_NPI > '{last_npi}' OR (Prscrbr_NPI = '{last_npi}' AND Brnd_Name > '{last_brnd}')"
+                "$where": f"Prscrbr_NPI > {last_npi} OR (Prscrbr_NPI = {last_npi} AND Brnd_Name > '{last_brnd}')"
             }   
 
         response = fetch_with_retry(url, params)    
@@ -105,8 +105,6 @@ def fetch_all_pages(conn, dataset_id, total_count,  limit=1000):
         if len(data) < limit:
             print(f"Reached end of dataset (received {len(data)} rows, limit={limit})")
             break
-
-        time.sleep(1)
 
 def main():
     dataset_id = "9552739e-3d05-4c1b-8eff-ecabf391e2e5"
