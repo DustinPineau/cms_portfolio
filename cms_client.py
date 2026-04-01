@@ -80,10 +80,6 @@ def fetch_all_pages(conn, dataset_id, total_count,  size=5000):
         offset += len(data)
         print(f"Progress: {offset}/{total_count}")
 
-        if len(data) < size:
-            print(f"Reached end of dataset (received {len(data)} rows, size={size})")
-            break
-
 def main():
     dataset_id = "9552739e-3d05-4c1b-8eff-ecabf391e2e5"
     conn = get_connection()
