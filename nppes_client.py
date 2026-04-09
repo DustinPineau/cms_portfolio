@@ -41,7 +41,7 @@ def get_npis(conn):
     print(f"Found {len(npis)} NPIs to process")
     return npis
 
-async def fetch_npi(client, npi):
+async def fetch_npi(client, npi, max_retries=3):
     url = f"https://npiregistry.cms.hhs.gov/api/?number={npi}&version=2.1"
     for attempt in range(max_retries):
         try:
