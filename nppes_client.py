@@ -43,9 +43,17 @@ def get_npis(conn):
 
 async def fetch_npi(client, npi):
     url = f"https://npiregistry.cms.hhs.gov/api/?number={npi}&version=2.1"
-    response = await client.get(url)
-    response.raise_for_status()
-    return response.json()
+    for attempt in range(max_retries):
+        try:
+            response = await client.get(url, timeout=30)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            if attempt < max_retries - 1:
+                await asyncio.sleep(2)
+            else:
+                print(f"Failed to fetch NPI {npi}: {e}")
+                return None
 
 async def check_and_insert(client, conn, npi, last_run):
     data = await fetch_npi(client, npi)
@@ -65,7 +73,7 @@ async def check_and_insert(client, conn, npi, last_run):
         conn.commit()
         cursor.close()
 
-async def fetch_all_npis(conn, npis, last_run, batch_size=500):
+async def fetch_all_npis(conn, npis, last_run, batch_size=50):
     async with httpx.AsyncClient() as client:
         for i in range(0, len(npis), batch_size):
             batch = npis[i:i + batch_size]
