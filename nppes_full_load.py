@@ -1,4 +1,5 @@
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import requests
 import zipfile
 import csv
@@ -16,12 +17,20 @@ def get_connection():
     )
     return conn
 
-def get_current_month_year():
+def get_download_url():
     now = datetime.now()
-    return now.strftime("%B"), now.strftime("%Y")
+    for i in range(2):
+        date = now - relativedelta(months=i)
+        month = date.strftime("%B")
+        year = date.strftime("%Y")
+        url = f"https://download.cms.gov/nppes/NPPES_Data_Dissemination_{month}_{year}_V2.zip"
+        response = requests.head(url)
+        if response.status_code == 200:
+            print(f"Found file: {url}")
+            return url, month, year
+    raise Exception("Could not find a valid NPPES download URL for current or previous month") 
 
-def download_file(month, year):
-    url = f"https://download.cms.gov/nppes/NPPES_Data_Dissemination_{month}_{year}_V2.zip"
+def download_file(url, month, year):
     dest = f"/mnt/storage2/Projects/tmp/NPPES_Data_Dissemination_{month}_{year}_V2.zip"
     print(f"Downloading {url}...")
     response = requests.get(url, stream=True)
@@ -72,8 +81,8 @@ def cleanup(filepath, extracted_path):
 def main():
     try:
         conn = get_connection()
-        month, year = get_current_month_year()
-        filepath = download_file(month, year)
+        url, month, year = get_download_url()
+        filepath = download_file(url, month, year)
         extracted_path = extract_file(filepath)
         load_file(conn, extracted_path)
         cleanup(filepath, extracted_path)
