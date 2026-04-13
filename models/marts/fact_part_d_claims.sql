@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', tags=['annual']) }}
 
 select
     md5(s.prscrbr_npi || '2023-01-01')::uuid            as provider_key,
