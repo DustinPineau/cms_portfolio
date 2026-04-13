@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', tags=['annual']) }}
 
 select
     -- identifiers and descriptors (text)
