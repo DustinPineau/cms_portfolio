@@ -9,5 +9,5 @@ from(
     select distinct
         brnd_name,
         gnrc_name
-    from {{ ref('stg_part_d') }}
+    from {{ ref('part_d') }}
 ) as drugs

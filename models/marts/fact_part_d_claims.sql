@@ -23,5 +23,5 @@ select
     s.ge65_sprsn_flag,
     s.ge65_bene_sprsn_flag
 
-from {{ ref('stg_part_d') }} s
+from {{ ref('part_d') }} s
 

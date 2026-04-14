@@ -76,5 +76,5 @@ from (
         prscrbr_state_fips,
         prscrbr_type,
         prscrbr_type_src
-    from {{ ref('stg_part_d') }}
+    from {{ ref('part_d') }}
 ) as providers
