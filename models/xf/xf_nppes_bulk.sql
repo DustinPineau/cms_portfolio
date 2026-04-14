@@ -73,4 +73,4 @@ select
     loaded_at,
     'bulk'::text                                                                        as source
 
-from raw.raw_nppes
+from raw.nppes_bulk

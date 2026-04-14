@@ -34,4 +34,4 @@ select
     -- metadata
     loaded_at
 
-from raw.raw_part_d
+from raw.part_d
