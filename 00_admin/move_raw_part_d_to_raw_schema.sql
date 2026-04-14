@@ -1,1 +1,1 @@
-ALTER TABLE public.raw_part_d SET SCHEMA raw;
+ALTER TABLE public.part_d SET SCHEMA raw;
