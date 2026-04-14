@@ -34,7 +34,7 @@ def get_total_count(dataset_id):
 
 def get_current_offset(conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM raw_part_d;")
+    cursor.execute("SELECT COUNT(*) FROM raw.part_d;")
     count = cursor.fetchone()[0]
     cursor.close()
     print(f"Resuming from offset: {count}")
@@ -47,7 +47,7 @@ def insert_rows(conn, rows):
     try:
         for row in rows:
             cursor.execute(
-                "INSERT INTO raw_part_d (data) VALUES (%s)",
+                "INSERT INTO raw.part_d (data) VALUES (%s)",
                 [json.dumps(row)]
             )
         conn.commit()

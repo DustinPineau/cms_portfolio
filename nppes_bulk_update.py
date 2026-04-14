@@ -57,7 +57,7 @@ def load_file(conn, extracted_path):
         reader = csv.DictReader(f)
         for row in reader:
             cursor.execute(
-                "INSERT INTO raw.raw_nppes (data) VALUES (%s)",
+                "INSERT INTO raw.nppes_bulk (data) VALUES (%s)",
                 [json.dumps(row)]
             )    
             count += 1
