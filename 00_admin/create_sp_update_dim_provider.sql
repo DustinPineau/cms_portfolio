@@ -4,7 +4,7 @@ AS $$
 DECLARE 
     v_today DATE := CURRENT_DATE;
 BEGIN
-
+ 
     -- initial nppes enrichment for existing records
     UPDATE dm.dim_provider d
     SET
@@ -32,23 +32,23 @@ BEGIN
         taxonomy_code_1      = n.taxonomy_code_1,
         taxonomy_license_1   = n.taxonomy_license_1,
         taxonomy_state_1     = n.taxonomy_state_1,
-        taxonomy_primary_1   = n.taxonomy_primary_1::boolean,
+        taxonomy_primary_1   = NULLIF(n.taxonomy_primary_1, '')::boolean,
         taxonomy_code_2      = n.taxonomy_code_2,
         taxonomy_license_2   = n.taxonomy_license_2,
         taxonomy_state_2     = n.taxonomy_state_2,
-        taxonomy_primary_2   = n.taxonomy_primary_2::boolean,
+        taxonomy_primary_2   = NULLIF(n.taxonomy_primary_2, '')::boolean,
         taxonomy_code_3      = n.taxonomy_code_3,
         taxonomy_license_3   = n.taxonomy_license_3,
         taxonomy_state_3     = n.taxonomy_state_3,
-        taxonomy_primary_3   = n.taxonomy_primary_3::boolean,
+        taxonomy_primary_3   = NULLIF(n.taxonomy_primary_3, '')::boolean,
         taxonomy_code_4      = n.taxonomy_code_4,
         taxonomy_license_4   = n.taxonomy_license_4,
         taxonomy_state_4     = n.taxonomy_state_4,
-        taxonomy_primary_4   = n.taxonomy_primary_4::boolean,
+        taxonomy_primary_4   = NULLIF(n.taxonomy_primary_4, '')::boolean,
         taxonomy_code_5      = n.taxonomy_code_5,
         taxonomy_license_5   = n.taxonomy_license_5,
         taxonomy_state_5     = n.taxonomy_state_5,
-        taxonomy_primary_5   = n.taxonomy_primary_5::boolean
+        taxonomy_primary_5   = NULLIF(n.taxonomy_primary_5, '')::boolean
     FROM stg.nppes n
     WHERE d.npi = n.npi
         AND d.entity_type_code IS NULL;
@@ -64,7 +64,7 @@ BEGIN
         WHERE COALESCE(n.last_updated, '1900-01-01') >= COALESCE(d.last_updated, '1900-01-01')
             AND d.is_current = true
     ),
-
+ 
     -- identify attribute changes for candidate record pairs
     changed AS (
         SELECT n.npi
@@ -104,14 +104,14 @@ BEGIN
                 OR COALESCE(n.enumeration_date::text, '')       != COALESCE(d.enumeration_date::text, '')               
             )
     )
-
+ 
     -- where npi attributes have changed, flag old records as expired
     UPDATE dm.dim_provider
     SET is_current = false,
         valid_to = v_today
     WHERE npi IN (SELECT npi FROM changed)   
         AND is_current = true;
-
+ 
     -- insert new versions for changed npis
     WITH candidates AS (
         SELECT n.npi
@@ -122,7 +122,7 @@ BEGIN
             AND d.is_current = false
             AND d.valid_to = v_today
     ),
-
+ 
     changed AS (
         SELECT n.npi
         FROM stg.nppes n
@@ -191,7 +191,7 @@ BEGIN
         is_current,
         inserted_at
     )
-
+ 
     SELECT
         md5(n.npi || v_today::text)::uuid,
         n.npi,
@@ -227,34 +227,34 @@ BEGIN
         null,
         n.taxonomy_license_1,
         n.taxonomy_state_1,
-        n.taxonomy_primary_1::boolean,
+        NULLIF(n.taxonomy_primary_1, '')::boolean,
         n.taxonomy_code_2,
         null,
         n.taxonomy_license_2,
         n.taxonomy_state_2,
-        n.taxonomy_primary_2::boolean,
+        NULLIF(n.taxonomy_primary_2, '')::boolean,
         n.taxonomy_code_3,
         null,
         n.taxonomy_license_3,
         n.taxonomy_state_3,
-        n.taxonomy_primary_3::boolean,
+        NULLIF(n.taxonomy_primary_3, '')::boolean,
         n.taxonomy_code_4,
         null,
         n.taxonomy_license_4,
         n.taxonomy_state_4,
-        n.taxonomy_primary_4::boolean,
+        NULLIF(n.taxonomy_primary_4, '')::boolean,
         n.taxonomy_code_5,
         null,
         n.taxonomy_license_5,
         n.taxonomy_state_5,
-        n.taxonomy_primary_5::boolean,
+        NULLIF(n.taxonomy_primary_5, '')::boolean,
         v_today,
         null::date,
         true,
         now()
     FROM stg.nppes n
     WHERE n.npi IN (SELECT npi FROM changed);
-
+ 
     -- insert new npis with no existing record in dm.dim_provider
     INSERT INTO dm.dim_provider (
         provider_key,
@@ -317,7 +317,7 @@ BEGIN
         is_current,
         inserted_at
     )
-
+ 
     SELECT
         md5(n.npi || v_today::text)::uuid,
         n.npi,
@@ -353,27 +353,27 @@ BEGIN
         null,
         n.taxonomy_license_1,
         n.taxonomy_state_1,
-        n.taxonomy_primary_1::boolean,
+        NULLIF(n.taxonomy_primary_1, '')::boolean,
         n.taxonomy_code_2,
         null,
         n.taxonomy_license_2,
         n.taxonomy_state_2,
-        n.taxonomy_primary_2::boolean,
+        NULLIF(n.taxonomy_primary_2, '')::boolean,
         n.taxonomy_code_3,
         null,
         n.taxonomy_license_3,
         n.taxonomy_state_3,
-        n.taxonomy_primary_3::boolean,
+        NULLIF(n.taxonomy_primary_3, '')::boolean,
         n.taxonomy_code_4,
         null,
         n.taxonomy_license_4,
         n.taxonomy_state_4,
-        n.taxonomy_primary_4::boolean,
+        NULLIF(n.taxonomy_primary_4, '')::boolean,
         n.taxonomy_code_5,
         null,
         n.taxonomy_license_5,
         n.taxonomy_state_5,
-        n.taxonomy_primary_5::boolean,
+        NULLIF(n.taxonomy_primary_5, '')::boolean,
         v_today,
         null::date,
         true,
@@ -383,7 +383,7 @@ BEGIN
         SELECT 1 FROM dm.dim_provider d
         WHERE d.npi = n.npi
     );
-
+ 
     RAISE NOTICE 'update_dim_provider complete';
 END;
 $$;
