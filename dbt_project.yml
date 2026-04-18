@@ -31,9 +31,9 @@ clean-targets:         # directories to be removed by `dbt clean`
 # files using the `{{ config(...) }}` macro.
 models:
   cms_medicare:
-    staging:
+    stg:
       +schema: stg
-    marts:
+    dm:
       +schema: dm
     xf:
       +schema: xf
