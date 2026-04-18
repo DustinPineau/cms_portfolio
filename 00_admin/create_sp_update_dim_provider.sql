@@ -1,75 +1,147 @@
 CREATE OR REPLACE PROCEDURE adm.update_dim_provider()
 LANGUAGE plpgsql
 AS $$
-DECLARE
+DECLARE 
     v_today DATE := CURRENT_DATE;
 BEGIN
 
-    -- close out existing records for any npi present in raw.nppes_bulk
-    WITH latest_nppes AS (
-        SELECT DISTINCT ON (data->>'NPI')
-            data->>'NPI' AS npi
-        FROM raw.nppes_bulk
-        ORDER BY data->>'NPI', loaded_at DESC
-    )
-    UPDATE analytics.dim_provider
+    -- initial nppes enrichment for existing records
+    UPDATE dm.dim_provider d
     SET
-        valid_to = v_today,
-        is_current = false
-    WHERE npi IN (SELECT npi FROM latest_nppes)
-    AND is_current = true;
+        entity_type_code     = n.entity_type_code,
+        status               = CASE WHEN n.deactivation_date IS NOT NULL THEN 'INACTIVE' ELSE 'ACTIVE' END,
+        credential           = n.credential,
+        sex                  = n.sex,
+        sole_proprietor      = n.sole_proprietor,
+        enumeration_date     = n.enumeration_date,
+        last_updated         = n.last_updated,
+        deactivation_date    = n.deactivation_date,
+        reactivation_date    = n.reactivation_date,
+        mailing_address_1    = n.mailing_address_1,
+        mailing_address_2    = n.mailing_address_2,
+        mailing_city         = n.mailing_city,
+        mailing_state        = n.mailing_state,
+        mailing_postal_code  = n.mailing_postal_code,
+        mailing_telephone    = n.mailing_telephone,
+        location_address_1   = n.location_address_1,
+        location_address_2   = n.location_address_2,
+        location_city        = n.location_city,
+        location_state       = n.location_state,
+        location_postal_code = n.location_postal_code,
+        location_telephone   = n.location_telephone,
+        taxonomy_code_1      = n.taxonomy_code_1,
+        taxonomy_license_1   = n.taxonomy_license_1,
+        taxonomy_state_1     = n.taxonomy_state_1,
+        taxonomy_primary_1   = n.taxonomy_primary_1::boolean,
+        taxonomy_code_2      = n.taxonomy_code_2,
+        taxonomy_license_2   = n.taxonomy_license_2,
+        taxonomy_state_2     = n.taxonomy_state_2,
+        taxonomy_primary_2   = n.taxonomy_primary_2::boolean,
+        taxonomy_code_3      = n.taxonomy_code_3,
+        taxonomy_license_3   = n.taxonomy_license_3,
+        taxonomy_state_3     = n.taxonomy_state_3,
+        taxonomy_primary_3   = n.taxonomy_primary_3::boolean,
+        taxonomy_code_4      = n.taxonomy_code_4,
+        taxonomy_license_4   = n.taxonomy_license_4,
+        taxonomy_state_4     = n.taxonomy_state_4,
+        taxonomy_primary_4   = n.taxonomy_primary_4::boolean,
+        taxonomy_code_5      = n.taxonomy_code_5,
+        taxonomy_license_5   = n.taxonomy_license_5,
+        taxonomy_state_5     = n.taxonomy_state_5,
+        taxonomy_primary_5   = n.taxonomy_primary_5::boolean
+    FROM stg.nppes n
+    WHERE d.npi = n.npi
+        AND d.entity_type_code IS NULL;
+    
+    -- narrow scope to npis with different values in last_updated
+    WITH candidates AS (
+        SELECT
+            n.npi,
+            n.last_updated
+        FROM stg.nppes n
+        INNER JOIN dm.dim_provider d
+            ON n.npi = d.npi
+        WHERE COALESCE(n.last_updated, '1900-01-01') >= COALESCE(d.last_updated, '1900-01-01')
+            AND d.is_current = true
+    ),
 
-    -- insert new versions for all npis in raw.nppes_bulk
-    WITH latest_nppes AS (
-        SELECT DISTINCT ON (data->>'NPI')
-            data->>'NPI'                                                                    AS npi,
-            data->>'Entity Type Code'                                                       AS entity_type_code,
-            data->>'Provider Last Name (Legal Name)'                                        AS last_name,
-            data->>'Provider First Name'                                                    AS first_name,
-            data->>'Provider Business Practice Location Address City Name'                  AS location_city,
-            data->>'Provider Business Practice Location Address State Name'                 AS location_state,
-            data->>'Provider Business Practice Location Address Postal Code'                AS location_postal_code,
-            data->>'Provider Business Practice Location Address Telephone Number'           AS location_telephone,
-            data->>'Provider First Line Business Practice Location Address'                 AS location_address_1,
-            data->>'Provider Second Line Business Practice Location Address'                AS location_address_2,
-            data->>'Provider First Line Business Mailing Address'                           AS mailing_address_1,
-            data->>'Provider Second Line Business Mailing Address'                          AS mailing_address_2,
-            data->>'Provider Business Mailing Address City Name'                            AS mailing_city,
-            data->>'Provider Business Mailing Address State Name'                           AS mailing_state,
-            data->>'Provider Business Mailing Address Postal Code'                          AS mailing_postal_code,
-            data->>'Provider Business Mailing Address Telephone Number'                     AS mailing_telephone,
-            data->>'Provider Credential Text'                                               AS credential,
-            data->>'Provider Sex Code'                                                      AS sex,
-            data->>'Is Sole Proprietor'                                                     AS sole_proprietor,
-            data->>'Provider Enumeration Date'                                              AS enumeration_date,
-            data->>'Last Update Date'                                                       AS last_updated,
-            data->>'NPI Deactivation Date'                                                  AS deactivation_date,
-            data->>'NPI Reactivation Date'                                                  AS reactivation_date,
-            data->>'Healthcare Provider Taxonomy Code_1'                                    AS taxonomy_code_1,
-            data->>'Provider License Number_1'                                              AS taxonomy_license_1,
-            data->>'Provider License Number State Code_1'                                   AS taxonomy_state_1,
-            data->>'Healthcare Provider Taxonomy Code_2'                                    AS taxonomy_code_2,
-            data->>'Provider License Number_2'                                              AS taxonomy_license_2,
-            data->>'Provider License Number State Code_2'                                   AS taxonomy_state_2,
-            data->>'Healthcare Provider Taxonomy Code_3'                                    AS taxonomy_code_3,
-            data->>'Provider License Number_3'                                              AS taxonomy_license_3,
-            data->>'Provider License Number State Code_3'                                   AS taxonomy_state_3,
-            data->>'Healthcare Provider Taxonomy Code_4'                                    AS taxonomy_code_4,
-            data->>'Provider License Number_4'                                              AS taxonomy_license_4,
-            data->>'Provider License Number State Code_4'                                   AS taxonomy_state_4,
-            data->>'Healthcare Provider Taxonomy Code_5'                                    AS taxonomy_code_5,
-            data->>'Provider License Number_5'                                              AS taxonomy_license_5,
-            data->>'Provider License Number State Code_5'                                   AS taxonomy_state_5,
-            loaded_at
-        FROM raw.nppes_bulk
-        ORDER BY data->>'NPI', loaded_at DESC
+    -- identify attribute changes for candidate record pairs
+    changed AS (
+        SELECT n.npi
+        FROM stg.nppes n
+        INNER JOIN dm.dim_provider d
+            ON n.npi = d.npi
+            WHERE n.npi IN (SELECT npi FROM candidates)
+            AND d.is_current = true
+            AND (
+                -- high churn
+                COALESCE(n.last_updated::text, '')              != COALESCE(d.last_updated::text, '')   
+                OR COALESCE(n.location_address_1, '')           != COALESCE(d.location_address_1, '')
+                OR COALESCE(n.location_city, '')                != COALESCE(d.location_city, '')
+                OR COALESCE(n.location_state, '')               != COALESCE(d.location_state, '')               
+                OR COALESCE(n.location_postal_code, '')         != COALESCE(d.location_postal_code, '')               
+                OR COALESCE(n.deactivation_date::text, '')      != COALESCE(d.deactivation_date::text, '')               
+                OR COALESCE(n.reactivation_date::text, '')      != COALESCE(d.reactivation_date::text, '')               
+                OR COALESCE(n.taxonomy_code_1, '')              != COALESCE(d.taxonomy_code_1, '')               
+                OR COALESCE(n.taxonomy_state_1, '')             != COALESCE(d.taxonomy_state_1, '')               
+                OR COALESCE(n.taxonomy_license_1, '')           != COALESCE(d.taxonomy_license_1, '')               
+                -- medium churn
+                OR COALESCE(n.credential, '')                   != COALESCE(d.credential, '')               
+                OR COALESCE(n.mailing_address_1, '')            != COALESCE(d.mailing_address_1, '')               
+                OR COALESCE(n.mailing_city, '')                 != COALESCE(d.mailing_city, '')               
+                OR COALESCE(n.mailing_state, '')                != COALESCE(d.mailing_state, '')               
+                OR COALESCE(n.mailing_postal_code, '')          != COALESCE(d.mailing_postal_code, '')               
+                OR COALESCE(n.taxonomy_code_2, '')              != COALESCE(d.taxonomy_code_2, '')               
+                OR COALESCE(n.taxonomy_code_3, '')              != COALESCE(d.taxonomy_code_3, '')               
+                OR COALESCE(n.taxonomy_code_4, '')              != COALESCE(d.taxonomy_code_4, '')               
+                OR COALESCE(n.taxonomy_code_5, '')              != COALESCE(d.taxonomy_code_5, '')               
+                -- low churn
+                OR COALESCE(n.sole_proprietor, '')              != COALESCE(d.sole_proprietor, '')               
+                OR COALESCE(n.entity_type_code, '')             != COALESCE(d.entity_type_code, '')               
+                OR COALESCE(n.last_name, '')                    != COALESCE(d.prscrbr_last_org_name, '')               
+                OR COALESCE(n.first_name, '')                   != COALESCE(d.prscrbr_first_name, '')               
+                OR COALESCE(n.sex, '')                          != COALESCE(d.sex, '')               
+                OR COALESCE(n.enumeration_date::text, '')       != COALESCE(d.enumeration_date::text, '')               
+            )
     )
-    INSERT INTO analytics.dim_provider (
+
+    -- where npi attributes have changed, flag old records as expired
+    UPDATE dm.dim_provider
+    SET is_current = false,
+        valid_to = v_today
+    WHERE npi IN (SELECT npi FROM changed)   
+        AND is_current = true;
+
+    -- insert new versions for changed npis
+    WITH candidates AS (
+        SELECT n.npi
+        FROM stg.nppes n
+        INNER JOIN dm.dim_provider d 
+            ON n.npi = d.npi
+            WHERE COALESCE(n.last_updated, '1900-01-01') >= COALESCE(d.last_updated, '1900-01-01')
+            AND d.is_current = false
+            AND d.valid_to = v_today
+    ),
+
+    changed AS (
+        SELECT n.npi
+        FROM stg.nppes n
+        INNER JOIN dm.dim_provider d ON n.npi = d.npi
+        WHERE n.npi IN (SELECT npi FROM candidates)
+    )
+    
+    INSERT INTO dm.dim_provider (
         provider_key,
         npi,
         prscrbr_last_org_name,
         prscrbr_first_name,
+        prscrbr_city,
+        prscrbr_state_abrvtn,
+        prscrbr_state_fips,
+        prscrbr_type,
+        prscrbr_type_src,
         entity_type_code,
+        status,
         credential,
         sex,
         sole_proprietor,
@@ -90,37 +162,119 @@ BEGIN
         location_postal_code,
         location_telephone,
         taxonomy_code_1,
+        taxonomy_desc_1,
         taxonomy_license_1,
         taxonomy_state_1,
+        taxonomy_primary_1,
         taxonomy_code_2,
+        taxonomy_desc_2,
         taxonomy_license_2,
         taxonomy_state_2,
+        taxonomy_primary_2,
         taxonomy_code_3,
+        taxonomy_desc_3,
         taxonomy_license_3,
         taxonomy_state_3,
+        taxonomy_primary_3,
         taxonomy_code_4,
+        taxonomy_desc_4,
         taxonomy_license_4,
         taxonomy_state_4,
+        taxonomy_primary_4,
         taxonomy_code_5,
+        taxonomy_desc_5,
         taxonomy_license_5,
         taxonomy_state_5,
+        taxonomy_primary_5,
         valid_from,
         valid_to,
-        is_current
+        is_current,
+        inserted_at
     )
+
     SELECT
-        md5(npi || v_today::text)::uuid,
+        md5(n.npi || v_today::text)::uuid,
+        n.npi,
+        n.last_name,
+        n.first_name,
+        n.location_city,
+        n.location_state,
+        null,
+        null,
+        null,
+        n.entity_type_code,
+        CASE WHEN n.deactivation_date IS NOT NULL THEN 'INACTIVE' ELSE 'ACTIVE' END,
+        n.credential,
+        n.sex,
+        n.sole_proprietor,
+        n.enumeration_date,
+        n.last_updated,
+        n.deactivation_date,
+        n.reactivation_date,
+        n.mailing_address_1,
+        n.mailing_address_2,
+        n.mailing_city,
+        n.mailing_state,
+        n.mailing_postal_code,
+        n.mailing_telephone,
+        n.location_address_1,
+        n.location_address_2,
+        n.location_city,
+        n.location_state,
+        n.location_postal_code,
+        n.location_telephone,
+        n.taxonomy_code_1,
+        null,
+        n.taxonomy_license_1,
+        n.taxonomy_state_1,
+        n.taxonomy_primary_1::boolean,
+        n.taxonomy_code_2,
+        null,
+        n.taxonomy_license_2,
+        n.taxonomy_state_2,
+        n.taxonomy_primary_2::boolean,
+        n.taxonomy_code_3,
+        null,
+        n.taxonomy_license_3,
+        n.taxonomy_state_3,
+        n.taxonomy_primary_3::boolean,
+        n.taxonomy_code_4,
+        null,
+        n.taxonomy_license_4,
+        n.taxonomy_state_4,
+        n.taxonomy_primary_4::boolean,
+        n.taxonomy_code_5,
+        null,
+        n.taxonomy_license_5,
+        n.taxonomy_state_5,
+        n.taxonomy_primary_5::boolean,
+        v_today,
+        null::date,
+        true,
+        now()
+    FROM stg.nppes n
+    WHERE n.npi IN (SELECT npi FROM changed);
+
+    -- insert new npis with no existing record in dm.dim_provider
+    INSERT INTO dm.dim_provider (
+        provider_key,
         npi,
-        last_name,
-        first_name,
+        prscrbr_last_org_name,
+        prscrbr_first_name,
+        prscrbr_city,
+        prscrbr_state_abrvtn,
+        prscrbr_state_fips,
+        prscrbr_type,
+        prscrbr_type_src,
         entity_type_code,
+        status,
         credential,
         sex,
         sole_proprietor,
-        nullif(enumeration_date, '')::date,
-        nullif(last_updated, '')::date,
-        nullif(deactivation_date, '')::date,
-        nullif(reactivation_date, '')::date,
+        enumeration_date,
+        last_updated,
+        deactivation_date,
+        reactivation_date,
         mailing_address_1,
         mailing_address_2,
         mailing_city,
@@ -134,38 +288,102 @@ BEGIN
         location_postal_code,
         location_telephone,
         taxonomy_code_1,
+        taxonomy_desc_1,
         taxonomy_license_1,
         taxonomy_state_1,
+        taxonomy_primary_1,
         taxonomy_code_2,
+        taxonomy_desc_2,
         taxonomy_license_2,
         taxonomy_state_2,
+        taxonomy_primary_2,
         taxonomy_code_3,
+        taxonomy_desc_3,
         taxonomy_license_3,
         taxonomy_state_3,
+        taxonomy_primary_3,
         taxonomy_code_4,
+        taxonomy_desc_4,
         taxonomy_license_4,
         taxonomy_state_4,
+        taxonomy_primary_4,
         taxonomy_code_5,
+        taxonomy_desc_5,
         taxonomy_license_5,
         taxonomy_state_5,
+        taxonomy_primary_5,
+        valid_from,
+        valid_to,
+        is_current,
+        inserted_at
+    )
+
+    SELECT
+        md5(n.npi || v_today::text)::uuid,
+        n.npi,
+        n.last_name,
+        n.first_name,
+        n.location_city,
+        n.location_state,
+        null,
+        null,
+        null,
+        n.entity_type_code,
+        CASE WHEN n.deactivation_date IS NOT NULL THEN 'INACTIVE' ELSE 'ACTIVE' END,
+        n.credential,
+        n.sex,
+        n.sole_proprietor,
+        n.enumeration_date,
+        n.last_updated,
+        n.deactivation_date,
+        n.reactivation_date,
+        n.mailing_address_1,
+        n.mailing_address_2,
+        n.mailing_city,
+        n.mailing_state,
+        n.mailing_postal_code,
+        n.mailing_telephone,
+        n.location_address_1,
+        n.location_address_2,
+        n.location_city,
+        n.location_state,
+        n.location_postal_code,
+        n.location_telephone,
+        n.taxonomy_code_1,
+        null,
+        n.taxonomy_license_1,
+        n.taxonomy_state_1,
+        n.taxonomy_primary_1::boolean,
+        n.taxonomy_code_2,
+        null,
+        n.taxonomy_license_2,
+        n.taxonomy_state_2,
+        n.taxonomy_primary_2::boolean,
+        n.taxonomy_code_3,
+        null,
+        n.taxonomy_license_3,
+        n.taxonomy_state_3,
+        n.taxonomy_primary_3::boolean,
+        n.taxonomy_code_4,
+        null,
+        n.taxonomy_license_4,
+        n.taxonomy_state_4,
+        n.taxonomy_primary_4::boolean,
+        n.taxonomy_code_5,
+        null,
+        n.taxonomy_license_5,
+        n.taxonomy_state_5,
+        n.taxonomy_primary_5::boolean,
         v_today,
         null::date,
-        true
-    FROM latest_nppes;
-
-    -- purge duplicate npi records, keep only most recent
-    WITH dupes AS (
-        SELECT ctid,
-               ROW_NUMBER() OVER (
-                   PARTITION BY data->>'NPI'
-                   ORDER BY loaded_at DESC
-               ) AS rn
-        FROM raw.nppes_bulk
-    )
-    DELETE FROM raw.nppes_bulk
-    WHERE ctid IN (SELECT ctid FROM dupes WHERE rn > 1);
+        true,
+        now()
+    FROM stg.nppes n
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dm.dim_provider d
+        WHERE d.npi = n.npi
+    );
 
     RAISE NOTICE 'update_dim_provider complete';
-
 END;
 $$;
