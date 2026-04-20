@@ -1,17 +1,6 @@
 version: 2
 
 models:
-  - name: dim_provider
-    columns:
-      - name: provider_key
-        tests:
-          - not_null
-          - unique
-      - name: npi
-        tests:
-          - not_null
-          - unique
-
   - name: dim_drug
     columns:
       - name: drug_key
@@ -24,10 +13,6 @@ models:
       - name: provider_key
         tests:
           - not_null
-          - relationships:
-                arguments:
-                  to: ref('dim_provider')
-                  field: provider_key
       - name: drug_key
         tests:
           - not_null
