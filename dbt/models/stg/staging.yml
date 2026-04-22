@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: part_d
+    columns:
+      - name: prscrbr_npi
+        tests:
+          - not_null
+      - name: brnd_name
+        tests:
+          - not_null
+      - name: gnrc_name
+        tests:
+          - not_null
