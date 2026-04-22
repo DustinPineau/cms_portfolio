@@ -47,7 +47,7 @@ with DAG(
     dbt_run = SSHOperator(
         task_id='dbt_run',
         ssh_conn_id='ssh_arch_host',
-        command='cd /mnt/storage2/Projects/dbt/cms_medicare && .venv/bin/dbt run --select tag:weekly',
+        command='cd /mnt/storage2/Projects/dbt/cms_medicare && /mnt/storage2/Projects/dbt/.venv/bin/dbt run --select tag:weekly',
         cmd_timeout=3600, # 1 hour
     )
 
