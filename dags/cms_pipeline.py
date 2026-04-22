@@ -23,7 +23,7 @@ with DAG(
     download_nppes_weekly = SSHOperator(
         task_id='download_nppes_weekly',
         ssh_conn_id='ssh_arch_host',
-        command='cd /mnt/storage2/Projects/cms_ingest && .venv/bin/python nppes_weekly_update.py',
+        command='source ~/.bash_profile && cd /mnt/storage2/Projects/cms_ingest && .venv/bin/python nppes_weekly_update.py',
     )
 
     # task 2: refresh stg.nppes
