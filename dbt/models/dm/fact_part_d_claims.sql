@@ -4,6 +4,7 @@ select
     md5(s.prscrbr_npi || '2023-01-01')::uuid            as provider_key,
     md5(s.brnd_name || s.gnrc_name)::uuid               as drug_key,
     2023                                                as claim_year,
+    s.prscrbr_npi,
 
     -- claim metrics
     s.tot_clms,
