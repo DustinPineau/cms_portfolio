@@ -5,7 +5,7 @@ DECLARE
     v_today DATE := CURRENT_DATE;
 BEGIN
  
-    -- initial nppes enrichment for existing records
+    -- step 0: initial nppes enrichment for existing records
     UPDATE dm.dim_provider d
     SET
         entity_type_code     = n.entity_type_code,
@@ -53,7 +53,7 @@ BEGIN
     WHERE d.npi = n.npi
         AND d.entity_type_code IS NULL;
     
-    -- narrow scope to npis with different values in last_updated
+    -- step 1: narrow scope to npis with different values in last_updated
     WITH candidates AS (
         SELECT
             n.npi,
@@ -65,7 +65,7 @@ BEGIN
             AND d.is_current = true
     ),
  
-    -- identify attribute changes for candidate record pairs
+    -- step 2: identify attribute changes for candidate record pairs
     changed AS (
         SELECT n.npi
         FROM stg.nppes n
@@ -105,14 +105,14 @@ BEGIN
             )
     )
  
-    -- where npi attributes have changed, flag old records as expired
+    -- step 3: where npi attributes have changed, flag old records as expired
     UPDATE dm.dim_provider
     SET is_current = false,
         valid_to = v_today
     WHERE npi IN (SELECT npi FROM changed)   
         AND is_current = true;
  
-    -- insert new versions for changed npis
+    -- step 4: insert new versions for changed npis
     WITH candidates AS (
         SELECT n.npi
         FROM stg.nppes n
@@ -255,7 +255,8 @@ BEGIN
     FROM stg.nppes n
     WHERE n.npi IN (SELECT npi FROM changed);
  
-    -- insert new npis with no existing record in dm.dim_provider
+    -- step 5: insert new npis with no existing record in dm.dim_provider
+    -- restricted to npis that exist in stg.part_d (part d providers only)
     INSERT INTO dm.dim_provider (
         provider_key,
         npi,
@@ -382,6 +383,10 @@ BEGIN
     WHERE NOT EXISTS (
         SELECT 1 FROM dm.dim_provider d
         WHERE d.npi = n.npi
+    )
+    AND EXISTS (
+        SELECT 1 FROM stg.part_d p
+        WHERE p.prscrbr_npi = n.npi
     );
  
     RAISE NOTICE 'update_dim_provider complete';
