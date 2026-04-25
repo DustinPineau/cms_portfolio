@@ -124,7 +124,7 @@ BEGIN
     ),
  
     changed AS (
-        SELECT n.npi
+        SELECT DISTINCT n.npi
         FROM stg.nppes n
         INNER JOIN dm.dim_provider d ON n.npi = d.npi
         WHERE n.npi IN (SELECT npi FROM candidates)
@@ -199,9 +199,9 @@ BEGIN
         n.first_name,
         n.location_city,
         n.location_state,
-        null,
-        null,
-        null,
+        old.prscrbr_state_fips,
+        old.prscrbr_type,
+        old.prscrbr_type_src,
         n.entity_type_code,
         CASE WHEN n.deactivation_date IS NOT NULL THEN 'INACTIVE' ELSE 'ACTIVE' END,
         n.credential,
@@ -253,7 +253,10 @@ BEGIN
         true,
         now()
     FROM stg.nppes n
-    WHERE n.npi IN (SELECT npi FROM changed);
+    INNER JOIN dm.dim_provider old ON n.npi = old.npi
+    WHERE n.npi IN (SELECT npi FROM changed)
+        AND old.is_current = false
+        AND old.valid_to = v_today;
  
     -- step 5: insert new npis with no existing record in dm.dim_provider
     -- restricted to npis that exist in stg.part_d (part d providers only)
@@ -327,8 +330,8 @@ BEGIN
         n.location_city,
         n.location_state,
         null,
-        null,
-        null,
+        p.prscrbr_type,
+        p.prscrbr_type_src,
         n.entity_type_code,
         CASE WHEN n.deactivation_date IS NOT NULL THEN 'INACTIVE' ELSE 'ACTIVE' END,
         n.credential,
@@ -380,6 +383,11 @@ BEGIN
         true,
         now()
     FROM stg.nppes n
+    LEFT JOIN (
+        SELECT DISTINCT prscrbr_npi, prscrbr_type, prscrbr_type_src
+        FROM stg.part_d
+        WHERE prscrbr_npi IS NOT NULL
+    ) p ON n.npi = p.prscrbr_npi
     WHERE NOT EXISTS (
         SELECT 1 FROM dm.dim_provider d
         WHERE d.npi = n.npi
