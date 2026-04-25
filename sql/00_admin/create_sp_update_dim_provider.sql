@@ -53,19 +53,36 @@ BEGIN
     WHERE d.npi = n.npi
         AND d.entity_type_code IS NULL;
 
-    -- step 0b: populate prscrbr_type and prscrbr_type_src from stg.part_d where null
+    -- step 0b: FORCE SINGLE TYPE - DELETE any duplicate current records first
+    DELETE FROM dm.dim_provider d
+    USING (
+        SELECT npi, MIN(provider_key) as keep_key
+        FROM dm.dim_provider
+        WHERE is_current = true
+        GROUP BY npi
+        HAVING COUNT(*) > 1
+    ) dup
+    WHERE d.npi = dup.npi
+      AND d.provider_key != dup.keep_key
+      AND d.is_current = true;
+    
+    -- step 0c: Populate missing types with single value from part_d
     UPDATE dm.dim_provider d
     SET
-        prscrbr_type     = p.prscrbr_type,
+        prscrbr_type = p.prscrbr_type,
         prscrbr_type_src = p.prscrbr_type_src
     FROM (
-        SELECT DISTINCT ON (prscrbr_npi) prscrbr_npi , prscrbr_type, prscrbr_type_src
+        SELECT 
+            prscrbr_npi,
+            MIN(prscrbr_type) as prscrbr_type,
+            MIN(prscrbr_type_src) as prscrbr_type_src
         FROM stg.part_d
         WHERE prscrbr_npi IS NOT NULL
-        ORDER BY prscrbr_npi
+          AND prscrbr_type IS NOT NULL
+        GROUP BY prscrbr_npi
     ) p
     WHERE d.npi = p.prscrbr_npi
-        AND d.prscrbr_type IS NULL;
+      AND (d.prscrbr_type IS NULL OR d.prscrbr_type != p.prscrbr_type);
     
     -- step 1: narrow scope to npis with different values in last_updated
     WITH candidates AS (
@@ -88,7 +105,6 @@ BEGIN
             WHERE n.npi IN (SELECT npi FROM candidates)
             AND d.is_current = true
             AND (
-                -- high churn
                 COALESCE(n.last_updated::text, '')              != COALESCE(d.last_updated::text, '')   
                 OR COALESCE(n.location_address_1, '')           != COALESCE(d.location_address_1, '')
                 OR COALESCE(n.location_city, '')                != COALESCE(d.location_city, '')
@@ -99,7 +115,6 @@ BEGIN
                 OR COALESCE(n.taxonomy_code_1, '')              != COALESCE(d.taxonomy_code_1, '')               
                 OR COALESCE(n.taxonomy_state_1, '')             != COALESCE(d.taxonomy_state_1, '')               
                 OR COALESCE(n.taxonomy_license_1, '')           != COALESCE(d.taxonomy_license_1, '')               
-                -- medium churn
                 OR COALESCE(n.credential, '')                   != COALESCE(d.credential, '')               
                 OR COALESCE(n.mailing_address_1, '')            != COALESCE(d.mailing_address_1, '')               
                 OR COALESCE(n.mailing_city, '')                 != COALESCE(d.mailing_city, '')               
@@ -109,7 +124,6 @@ BEGIN
                 OR COALESCE(n.taxonomy_code_3, '')              != COALESCE(d.taxonomy_code_3, '')               
                 OR COALESCE(n.taxonomy_code_4, '')              != COALESCE(d.taxonomy_code_4, '')               
                 OR COALESCE(n.taxonomy_code_5, '')              != COALESCE(d.taxonomy_code_5, '')               
-                -- low churn
                 OR COALESCE(n.sole_proprietor, '')              != COALESCE(d.sole_proprietor, '')               
                 OR COALESCE(n.entity_type_code, '')             != COALESCE(d.entity_type_code, '')               
                 OR COALESCE(n.last_name, '')                    != COALESCE(d.prscrbr_last_org_name, '')               
@@ -127,23 +141,6 @@ BEGIN
         AND is_current = true;
  
     -- step 4: insert new versions for changed npis
-    WITH candidates AS (
-        SELECT n.npi
-        FROM stg.nppes n
-        INNER JOIN dm.dim_provider d 
-            ON n.npi = d.npi
-            WHERE COALESCE(n.last_updated, '1900-01-01') >= COALESCE(d.last_updated, '1900-01-01')
-            AND d.is_current = false
-            AND d.valid_to = v_today
-    ),
- 
-    changed AS (
-        SELECT DISTINCT n.npi
-        FROM stg.nppes n
-        INNER JOIN dm.dim_provider d ON n.npi = d.npi
-        WHERE n.npi IN (SELECT npi FROM candidates)
-    )
-    
     INSERT INTO dm.dim_provider (
         provider_key,
         npi,
@@ -205,7 +202,6 @@ BEGIN
         is_current,
         inserted_at
     )
- 
     SELECT
         md5(n.npi || v_today::text)::uuid,
         n.npi,
@@ -268,12 +264,12 @@ BEGIN
         now()
     FROM stg.nppes n
     INNER JOIN dm.dim_provider old ON n.npi = old.npi
-    WHERE n.npi IN (SELECT npi FROM changed)
-        AND old.is_current = false
-        AND old.valid_to = v_today;
+    WHERE COALESCE(n.last_updated, '1900-01-01') >= COALESCE(old.last_updated, '1900-01-01')
+      AND old.is_current = false
+      AND old.valid_to = v_today
+      AND n.npi IN (SELECT npi FROM changed);
  
     -- step 5: insert new npis with no existing record in dm.dim_provider
-    -- restricted to npis that exist in stg.part_d (part d providers only)
     INSERT INTO dm.dim_provider (
         provider_key,
         npi,
@@ -335,7 +331,6 @@ BEGIN
         is_current,
         inserted_at
     )
- 
     SELECT
         md5(n.npi || v_today::text)::uuid,
         n.npi,
@@ -398,10 +393,14 @@ BEGIN
         now()
     FROM stg.nppes n
     LEFT JOIN (
-        SELECT DISTINCT ON (prscrbr_npi) prscrbr_npi, prscrbr_type, prscrbr_type_src
+        SELECT 
+            prscrbr_npi,
+            MIN(prscrbr_type) as prscrbr_type,
+            MIN(prscrbr_type_src) as prscrbr_type_src
         FROM stg.part_d
         WHERE prscrbr_npi IS NOT NULL
-        ORDER BY prscrbr_npi
+          AND prscrbr_type IS NOT NULL
+        GROUP BY prscrbr_npi
     ) p ON n.npi = p.prscrbr_npi
     WHERE NOT EXISTS (
         SELECT 1 FROM dm.dim_provider d
@@ -411,6 +410,19 @@ BEGIN
         SELECT 1 FROM stg.part_d pd
         WHERE pd.prscrbr_npi = n.npi
     );
+    
+    -- step 6: FINAL CLEANUP - Delete any duplicate current records created by race conditions
+    DELETE FROM dm.dim_provider d
+    USING (
+        SELECT npi, MIN(provider_key) as keep_key
+        FROM dm.dim_provider
+        WHERE is_current = true
+        GROUP BY npi
+        HAVING COUNT(*) > 1
+    ) dup
+    WHERE d.npi = dup.npi
+      AND d.provider_key != dup.keep_key
+      AND d.is_current = true;
  
     RAISE NOTICE 'update_dim_provider complete';
 END;
