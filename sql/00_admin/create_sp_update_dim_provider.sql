@@ -52,6 +52,19 @@ BEGIN
     FROM stg.nppes n
     WHERE d.npi = n.npi
         AND d.entity_type_code IS NULL;
+
+    -- step 0b: populate prscrbr_type and prscrbr_type_src from stg.part_d where null
+    UPDATE dm.dim_provider d
+    SET
+        prscrbr_type     = p.prscrbr_type,
+        prscrbr_type_src = p.prscrbr_type_src
+    FROM (
+        SELECT DISTINCT prscrbr_npi, prscrbr_type, prscrbr_type_src
+        FROM stg.part_d
+        WHERE prscrbr_npi IS NOT NULL
+    ) p
+    WHERE d.npi = p.prscrbr_npi
+        AND d.prscrbr_type IS NULL;
     
     -- step 1: narrow scope to npis with different values in last_updated
     WITH candidates AS (
