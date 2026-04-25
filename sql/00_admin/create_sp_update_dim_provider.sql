@@ -406,8 +406,8 @@ BEGIN
         WHERE d.npi = n.npi
     )
     AND EXISTS (
-        SELECT 1 FROM stg.part_d p
-        WHERE p.prscrbr_npi = n.npi
+        SELECT 1 FROM stg.part_d pd
+        WHERE pd.prscrbr_npi = n.npi
     );
  
     RAISE NOTICE 'update_dim_provider complete';
