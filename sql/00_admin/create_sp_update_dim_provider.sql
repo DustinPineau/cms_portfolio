@@ -59,9 +59,10 @@ BEGIN
         prscrbr_type     = p.prscrbr_type,
         prscrbr_type_src = p.prscrbr_type_src
     FROM (
-        SELECT DISTINCT prscrbr_npi, prscrbr_type, prscrbr_type_src
+        SELECT DISTINCT ON (prscrbr_npi) prscrbr_npi , prscrbr_type, prscrbr_type_src
         FROM stg.part_d
         WHERE prscrbr_npi IS NOT NULL
+        ORDER BY prscrbr_npi
     ) p
     WHERE d.npi = p.prscrbr_npi
         AND d.prscrbr_type IS NULL;
@@ -397,9 +398,10 @@ BEGIN
         now()
     FROM stg.nppes n
     LEFT JOIN (
-        SELECT DISTINCT prscrbr_npi, prscrbr_type, prscrbr_type_src
+        SELECT DISTINCT ON (prscrbr_npi) prscrbr_npi, prscrbr_type, prscrbr_type_src
         FROM stg.part_d
         WHERE prscrbr_npi IS NOT NULL
+        ORDER BY prscrbr_npi
     ) p ON n.npi = p.prscrbr_npi
     WHERE NOT EXISTS (
         SELECT 1 FROM dm.dim_provider d
