@@ -20,3 +20,4 @@ group by
     p.location_city,
     p.location_state
 order by total_claims desc
+limit 1000
