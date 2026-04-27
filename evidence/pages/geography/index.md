@@ -8,7 +8,7 @@ select * from cms_portfolio.geography_state
 
 ## Drug Spend by State
 
-<USMap data={geography_state} state=location_state abbreviations=true value=total_drug_cost/>
+<USMap data={geography_state} state=location_state abbreviations=true value=total_drug_cost link=link/>
 
 ## State Summary
 
