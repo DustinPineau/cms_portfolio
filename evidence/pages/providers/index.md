@@ -1,5 +1,5 @@
 ---
-title: Provider Deep Dive
+title: Provider
 ---
 
 ```sql provider_list
