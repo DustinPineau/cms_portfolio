@@ -1,5 +1,5 @@
 ---
-title: Drug Deep Dive
+title: Drug
 ---
 
 ```sql drug_list
