@@ -12,3 +12,10 @@ select
     p.last_updated
 from dm.dim_provider p
 where p.is_current = true
+and p.npi in (
+    select prscrbr_npi
+    from dm.fact_part_d_claims
+    group by prscrbr_npi
+    order by sum(tot_clms) desc
+    limit 1000
+)
