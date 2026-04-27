@@ -15,7 +15,7 @@ select
     p.sex,
     p.enumeration_date,
     p.last_updated
-from dm.dim_provider p
+from dim_provider p
 where p.npi = '${params.npi}'
     and p.is_current = true
 ```
@@ -27,8 +27,8 @@ select
     sum(p.tot_clms) as total_claims,
     sum(p.tot_30day_fills) as total_prescriptions,
     sum(p.tot_drug_cst) as total_drug_cost
-from dm.fact_part_d_claims p
-join dm.dim_drug d on p.drug_key = d.drug_key
+from fact_part_d_claims p
+join dim_drug d on p.drug_key = d.drug_key
 where p.prscrbr_npi = '${params.npi}'
 group by d.brnd_name, d.gnrc_name
 order by total_claims desc
