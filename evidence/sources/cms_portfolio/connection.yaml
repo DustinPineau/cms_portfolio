@@ -1,0 +1,8 @@
+# This file was automatically generated
+name: cms_portfolio
+type: postgres
+options:
+  database: portfolio
+  host: 192.168.122.10
+  port: 5432
+  schema: dm
