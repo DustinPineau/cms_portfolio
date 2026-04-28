@@ -81,3 +81,4 @@ plugins:
     "@evidence-dev/motherduck": { }
 deployment:
   prerender: false
+  basePath: /cms_portfolio
