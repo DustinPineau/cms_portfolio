@@ -16,6 +16,7 @@ select * from (
     from dm.fact_part_d_claims f
     join dm.dim_provider p on f.prscrbr_npi = p.npi
     where p.is_current = true
+    and p.status = 'ACTIVE'
     group by p.location_state, p.npi, p.prscrbr_last_org_name,
         p.prscrbr_first_name, p.prscrbr_type, p.location_city
 ) ranked

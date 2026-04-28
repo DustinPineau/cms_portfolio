@@ -12,6 +12,7 @@ select
     p.last_updated
 from dm.dim_provider p
 where p.is_current = true
+and p.status = 'ACTIVE'
 and p.npi in (
     select prscrbr_npi
     from dm.fact_part_d_claims

@@ -12,6 +12,7 @@ select
 from dm.fact_part_d_claims f
 join dm.dim_provider p on f.prscrbr_npi = p.npi
 where p.is_current = true
+and p.status = 'ACTIVE'
 group by
     f.prscrbr_npi,
     p.prscrbr_last_org_name,
