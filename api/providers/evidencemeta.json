@@ -1,0 +1,1 @@
+{"queries":[{"id":"provider_list","compiledQueryString":"select * from cms_portfolio.provider_list","inputQueryString":"select * from cms_portfolio.provider_list","compiled":false,"inline":true}]}

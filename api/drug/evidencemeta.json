@@ -1,0 +1,1 @@
+{"queries":[{"id":"drug_list","compiledQueryString":"select * from cms_portfolio.drug_list","inputQueryString":"select * from cms_portfolio.drug_list","compiled":false,"inline":true}]}

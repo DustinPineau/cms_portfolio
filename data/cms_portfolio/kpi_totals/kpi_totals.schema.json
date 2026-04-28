@@ -1,0 +1,1 @@
+[{"name":"total_claims","evidenceType":"number","typeFidelity":"precise"},{"name":"total_prescriptions","evidenceType":"number","typeFidelity":"precise"},{"name":"total_drug_cost","evidenceType":"number","typeFidelity":"precise"},{"name":"provider_count","evidenceType":"number","typeFidelity":"precise"},{"name":"unique_drugs","evidenceType":"number","typeFidelity":"precise"}]

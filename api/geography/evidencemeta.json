@@ -1,0 +1,1 @@
+{"queries":[{"id":"geography_state","compiledQueryString":"select * from cms_portfolio.geography_state","inputQueryString":"select * from cms_portfolio.geography_state","compiled":false,"inline":true}]}

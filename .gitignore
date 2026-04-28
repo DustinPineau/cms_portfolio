@@ -1,0 +1,6 @@
+dbt/.venv/
+logs/
+evidence/node_modules/
+evidence/.evidence/
+*.pyc
+__pycache__/
