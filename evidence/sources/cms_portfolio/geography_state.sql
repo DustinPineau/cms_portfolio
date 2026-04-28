@@ -4,7 +4,7 @@ select
     sum(f.tot_clms) as total_claims,
     sum(f.tot_30day_fills) as total_prescriptions,
     sum(f.tot_drug_cst) as total_drug_cost,
-    '/geography/' || p.location_state as link
+    '/cms_portfolio/geography/' || p.location_state as link
 from dm.fact_part_d_claims f
 join dm.dim_provider p on f.prscrbr_npi = p.npi
 where p.is_current = true
