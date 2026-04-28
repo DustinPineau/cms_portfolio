@@ -3,7 +3,12 @@ title: Drug Detail
 ---
 
 ```sql drug_detail
-select * from cms_portfolio.drug_list
+select
+    brnd_name,
+    gnrc_name,
+    total_claims,
+    total_drug_cost
+from cms_portfolio.drug_list
 where drug_key = '${params.drug_key}'
 ```
 
@@ -15,9 +20,10 @@ order by total_claims desc
 
 # {drug_detail[0].brnd_name}
 
-**Generic Name:** {drug_detail[0].gnrc_name}  
-**Total Claims:** {drug_detail[0].total_claims}  
-**Total Drug Cost:** {drug_detail[0].total_drug_cost}  
+<BigValue data={drug_detail} value=brnd_name title="Brand Name"/>
+<BigValue data={drug_detail} value=gnrc_name title="Generic Name"/>
+<BigValue data={drug_detail} value=total_claims title="Total Claims" fmt=num0/>
+<BigValue data={drug_detail} value=total_drug_cost title="Total Drug Cost" fmt=usd0/>
 
 ## Top Prescribers
 
