@@ -26,7 +26,7 @@ order by total_claims desc
 
 ## Top Prescribers
 
-<DataTable data={drug_prescribers}>
+<DataTable data={drug_prescribers} link=link>
     <Column id=npi title="NPI"/>
     <Column id=prscrbr_last_org_name title="Last Name / Org"/>
     <Column id=prscrbr_first_name title="First Name"/>
