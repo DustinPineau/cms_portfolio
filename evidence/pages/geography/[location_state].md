@@ -3,7 +3,12 @@ title: State Detail
 ---
 
 ```sql state_summary
-select * from cms_portfolio.geography_state
+select
+    location_state,
+    printf('%,d', cast(provider_count as int)) as provider_count,
+    printf('%,d', cast(total_claims as int)) as total_claims,
+    printf('$%,.2f', total_drug_cost) as total_drug_cost
+from cms_portfolio.geography_state
 where location_state = '${params.location_state}'
 ```
 
@@ -14,9 +19,9 @@ where location_state = '${params.location_state}'
 
 # {state_summary[0].location_state}
 
-<BigValue data={state_summary} value=total_claims title="Total Claims" fmt=num0/>
-<BigValue data={state_summary} value=total_drug_cost title="Total Drug Cost" fmt=usd0/>
-<BigValue data={state_summary} value=provider_count title="Provider Count" fmt=num0/>
+**Total Claims:** {state_summary[0].total_claims}  
+**Total Drug Cost:** {state_summary[0].total_drug_cost}  
+**Provider Count:** {state_summary[0].provider_count}  
 
 ## Top Providers
 

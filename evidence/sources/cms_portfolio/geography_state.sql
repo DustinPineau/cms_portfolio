@@ -9,6 +9,5 @@ from dm.fact_part_d_claims f
 join dm.dim_provider p on f.prscrbr_npi = p.npi
 where p.is_current = true
 and p.location_state is not null
-and p.location_state != 'N/A'
 group by p.location_state
 order by total_drug_cost desc
