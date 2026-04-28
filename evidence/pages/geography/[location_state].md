@@ -14,9 +14,9 @@ where location_state = '${params.location_state}'
 
 # {state_summary[0].location_state}
 
-**Total Claims:** <Value data={state_summary} column=total_claims fmt=num0/>  
-**Total Drug Cost:** <Value data={state_summary} column=total_drug_cost fmt=usd0/>  
-**Provider Count:** <Value data={state_summary} column=provider_count fmt=num0/>  
+<BigValue data={state_summary} value=total_claims title="Total Claims" fmt=num0/>
+<BigValue data={state_summary} value=total_drug_cost title="Total Drug Cost" fmt=usd0/>
+<BigValue data={state_summary} value=provider_count title="Provider Count" fmt=num0/>
 
 ## Top Providers
 
