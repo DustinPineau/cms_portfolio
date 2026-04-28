@@ -21,6 +21,7 @@ where location_state = '${params.location_state}'
 ## Top Providers
 
 <DataTable data={state_providers}>
+    <Column id=npi title="NPI"/>
     <Column id=prscrbr_last_org_name title="Last Name / Org"/>
     <Column id=prscrbr_first_name title="First Name"/>
     <Column id=prscrbr_type title="Specialty"/>
