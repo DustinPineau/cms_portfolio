@@ -3,12 +3,7 @@ title: State Detail
 ---
 
 ```sql state_summary
-select
-    location_state,
-    printf('%,d', cast(provider_count as int)) as provider_count,
-    printf('%,d', cast(total_claims as int)) as total_claims,
-    printf('$%,.2f', total_drug_cost) as total_drug_cost
-from cms_portfolio.geography_state
+select * from cms_portfolio.geography_state
 where location_state = '${params.location_state}'
 ```
 
@@ -19,9 +14,9 @@ where location_state = '${params.location_state}'
 
 # {state_summary[0].location_state}
 
-**Total Claims:** {state_summary[0].total_claims}  
-**Total Drug Cost:** {state_summary[0].total_drug_cost}  
-**Provider Count:** {state_summary[0].provider_count}  
+**Total Claims:** {state_summary[0].total_claims.toLocaleString()}  
+**Total Drug Cost:** ${state_summary[0].total_drug_cost.toLocaleString()}  
+**Provider Count:** {state_summary[0].provider_count.toLocaleString()}  
 
 ## Top Providers
 
