@@ -30,4 +30,5 @@ from (
 join dm.dim_provider p on f.prscrbr_npi = p.npi
 where f.rn <= 100
 and p.is_current = true
+and p.status = 'ACTIVE'
 order by f.drug_key, f.total_claims desc
